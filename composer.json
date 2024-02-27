@@ -18,6 +18,11 @@
             "name": "Daniel Gohlke",
             "email": "ext@extco.de",
             "role": "Developer"
+        },
+        {
+            "name": "Holger McCloy",
+            "email": "hallo@netzleuchten.com",
+            "role": "Developer"
         }
     ],
     "support": {
@@ -48,7 +53,7 @@
     },
     "scripts": {
         "extcode:cgl": [
-            ".build/bin/php-cs-fixer fix --config=Build/.php_cs.dist -v --using-cache=no --path-mode=intersection ./"
+            ".build/bin/php-cs-fixer fix --config=Build/.php-cs-fixer.dist.php -v --using-cache=no --path-mode=intersection ./"
         ],
         "extcode:test:php:lint": [
             ".build/bin/phplint -c Build/phplint.yaml"
@@ -74,12 +79,12 @@
         ]
     },
     "require": {
-        "php": ">=7.2.0 <7.5",
-        "typo3/cms-core": "^10.4"
+        "php": ">=8.0.0 <=8.3",
+        "typo3/cms-core": "^11.5"
     },
     "require-dev": {
         "typo3/testing-framework": "^6.0",
-        "friendsofphp/php-cs-fixer": "^2.14",
+        "friendsofphp/php-cs-fixer": "^3.5",
         "helmich/typo3-typoscript-lint": "^2.0",
         "overtrue/phplint": "^1.1"
     }

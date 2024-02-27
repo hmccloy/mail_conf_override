@@ -5,7 +5,7 @@ $EM_CONF['mail_conf_override'] = [
     'description' => 'The extension allows different mail configurations for mail from addresses.',
     'category' => 'plugin',
     'shy' => false,
-    'version' => '3.0.0',
+    'version' => '4.0.0',
     'dependencies' => '',
     'conflicts' => '',
     'priority' => '',
@@ -24,7 +24,7 @@ $EM_CONF['mail_conf_override'] = [
     'CGLcompliance_note' => null,
     'constraints' => [
         'depends' => [
-            'typo3' => '10.4.0-10.4.99',
+            'typo3' => '11.5.0-11.5.99',
         ],
         'conflicts' => [],
         'suggests' => [],
