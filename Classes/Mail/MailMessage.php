@@ -34,11 +34,6 @@ class MailMessage extends \TYPO3\CMS\Core\Mail\MailMessage
     protected $transport;
 
     /**
-     * @var array
-     */
-    protected $mailSettings = [];
-
-    /**
      * @var Mailer
      */
     protected $mailer;
@@ -53,9 +48,7 @@ class MailMessage extends \TYPO3\CMS\Core\Mail\MailMessage
     private function initializeMailer(): void
     {
         $this->injectMailSettings();
-        $this->initializeTransport();
-
-        $this->mailer = GeneralUtility::makeInstance(Mailer::class, $this->transport);
+        $this->mailer = GeneralUtility::makeInstance(Mailer::class);
     }
 
     /**
@@ -79,309 +72,22 @@ class MailMessage extends \TYPO3\CMS\Core\Mail\MailMessage
     }
 
     /**
-     * Checks whether the message has been sent.
+     * Overrride mail settings depending on the sender's address
      *
-     * @return bool
-     */
-    public function isSent(): bool
-    {
-        return $this->sent;
-    }
-
-    /**
-     * compatibility methods to allow for associative arrays as [name => email address]
-     * as it was possible in TYPO3 v9 / SwiftMailer.
-     *
-     * Also, ensure to switch to Address objects and the ->subject()/->from() methods directly
-     * to directly use the new API.
-     */
-
-    /**
-     * Set the subject of the message.
-     *
-     * @param string $subject
-     * @return MailMessage
-     */
-    public function setSubject($subject): self
-    {
-        return $this->subject($subject);
-    }
-
-    /**
-     * Set the origination date of the message as a UNIX timestamp.
-     *
-     * @param int $date
-     * @return MailMessage
-     */
-    public function setDate($date): self
-    {
-        return $this->date(new \DateTime('@' . $date));
-    }
-
-    /**
-     * Set the return-path (the bounce address) of this message.
-     *
-     * @param string $address
-     * @return MailMessage
-     */
-    public function setReturnPath($address): self
-    {
-        return $this->returnPath($address);
-    }
-
-    /**
-     * Set the sender of this message.
-     *
-     * This does not override the From field, but it has a higher significance.
-     *
-     * @param string $address
-     * @param string $name optional
-     * @return MailMessage
-     */
-    public function setSender($address, $name = null): self
-    {
-        return $this->sender(...$this->convertNamedAddress($address, $name));
-    }
-
-    /**
-     * Set the from address of this message.
-     *
-     * You may pass an array of addresses if this message is from multiple people.
-     *
-     * If $name is passed and the first parameter is a string, this name will be
-     * associated with the address.
-     * If $name is passed and the first parameter is not a string, an exception is thrown.
-     *
-     * @param string|array $addresses
-     * @param string $name optional
-     * @return MailMessage
-     */
-    public function setFrom($addresses, $name = null): self
-    {
-        $this->checkArguments($addresses, $name);
-        return $this->from(...$this->convertNamedAddress($addresses, $name));
-    }
-
-    /**
-     * Set the reply-to address of this message.
-     *
-     * You may pass an array of addresses if replies will go to multiple people.
-     *
-     * If $name is passed and the first parameter is a string, this name will be
-     * associated with the address.
-     * If $name is passed and the first parameter is not a string, an exception is thrown.
-     *
-     * @param string|array $addresses
-     * @param string $name optional
-     * @return MailMessage
-     */
-    public function setReplyTo($addresses, $name = null): self
-    {
-        $this->checkArguments($addresses, $name);
-        return $this->replyTo(...$this->convertNamedAddress($addresses, $name));
-    }
-
-    /**
-     * Set the to addresses of this message.
-     *
-     * If multiple recipients will receive the message an array should be used.
-     * Example: array('receiver@domain.org', 'other@domain.org' => 'A name')
-     *
-     * If $name is passed and the first parameter is a string, this name will be
-     * associated with the address.
-     * If $name is passed and the first parameter is not a string, an exception is thrown.
-     *
-     * @param string|array $addresses
-     * @param string $name optional
-     * @return MailMessage
-     */
-    public function setTo($addresses, $name = null): self
-    {
-        $this->checkArguments($addresses, $name);
-        return $this->to(...$this->convertNamedAddress($addresses, $name));
-    }
-
-    /**
-     * Set the Cc addresses of this message.
-     *
-     * If multiple recipients will receive the message an array should be used.
-     * Example: array('receiver@domain.org', 'other@domain.org' => 'A name')
-     *
-     * If $name is passed and the first parameter is a string, this name will be
-     * associated with the address.
-     * If $name is passed and the first parameter is not a string, an exception is thrown.
-     *
-     * @param string|array $addresses
-     * @param string $name optional
-     * @return MailMessage
-     */
-    public function setCc($addresses, $name = null): self
-    {
-        $this->checkArguments($addresses, $name);
-        return $this->cc(...$this->convertNamedAddress($addresses, $name));
-    }
-
-    /**
-     * Set the Bcc addresses of this message.
-     *
-     * If multiple recipients will receive the message an array should be used.
-     * Example: array('receiver@domain.org', 'other@domain.org' => 'A name')
-     *
-     * If $name is passed and the first parameter is a string, this name will be
-     * associated with the address.
-     * If $name is passed and the first parameter is not a string, an exception is thrown.
-     *
-     * @param string|array $addresses
-     * @param string $name optional
-     * @return MailMessage
-     */
-    public function setBcc($addresses, $name = null): self
-    {
-        $this->checkArguments($addresses, $name);
-        return $this->bcc(...$this->convertNamedAddress($addresses, $name));
-    }
-
-    /**
-     * Ask for a delivery receipt from the recipient to be sent to $addresses.
-     *
-     * @param string $address
-     * @return MailMessage
-     */
-    public function setReadReceiptTo(string $address): self
-    {
-        $this->getHeaders()->addMailboxHeader('Disposition-Notification-To', $address);
-        return $this;
-    }
-
-    /**
-     * Converts address from [email, name] into Address objects.
-     *
-     * @param mixed ...$args
-     * @return Address[]
-     */
-    protected function convertNamedAddress(...$args): array
-    {
-        if (isset($args[1])) {
-            return [Address::create(sprintf('%s <%s>', $args[1], $args[0]))];
-        }
-        if (is_string($args[0]) || is_array($args[0])) {
-            return $this->convertAddresses($args[0]);
-        }
-        return $this->convertAddresses($args);
-    }
-
-    /**
-     * Converts Addresses into Address/NamedAddress objects.
-     *
-     * @param string|array $addresses
-     * @return Address[]
-     */
-    protected function convertAddresses($addresses): array
-    {
-        if (!is_array($addresses)) {
-            return [Address::create($addresses)];
-        }
-        $newAddresses = [];
-        foreach ($addresses as $email => $name) {
-            if (is_numeric($email) || ctype_digit($email)) {
-                $newAddresses[] = Address::create($name);
-            } else {
-                $newAddresses[] = Address::create(sprintf('%s <%s>', $name, $email));
-            }
-        }
-
-        return $newAddresses;
-    }
-
-    /**
-     * This method is only used in unit tests
-     *
-     * @param array $mailSettings
      * @internal
      */
-    public function injectMailSettings(array $mailSettings = null)
+    public function injectMailSettings()
     {
         if (is_array($this->getFrom()) && ($this->getFrom()[0] instanceof \Symfony\Component\Mime\Address)) {
             $from = $this->getFrom()[0]->getAddress();
         }
 
-
-        if (is_array($mailSettings)) {
-            $this->mailSettings = $mailSettings;
-        } elseif (!empty($GLOBALS['TYPO3_CONF_VARS']['MAIL']['overrides'][$from]) && is_array($GLOBALS['TYPO3_CONF_VARS']['MAIL']['overrides'][$from])) {
-            $this->mailSettings = array_replace(
+        if (!empty($GLOBALS['TYPO3_CONF_VARS']['MAIL']['overrides'][$from]) && is_array($GLOBALS['TYPO3_CONF_VARS']['MAIL']['overrides'][$from])) {
+            $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = array_replace(
                 (array)$GLOBALS['TYPO3_CONF_VARS']['MAIL'],
                 (array)$GLOBALS['TYPO3_CONF_VARS']['MAIL']['overrides'][$from]
             );
-            unset($this->mailSettings['overrides']);
-        } else {
-            $this->mailSettings = (array)$GLOBALS['TYPO3_CONF_VARS']['MAIL'];
-        }
-    }
-
-    /**
-     * Prepares a transport using the TYPO3_CONF_VARS configuration
-     *
-     * Used options:
-     * $TYPO3_CONF_VARS['MAIL']['transport'] = 'smtp' | 'sendmail' | 'mail' | 'mbox'
-     *
-     * $TYPO3_CONF_VARS['MAIL']['transport_smtp_server'] = 'smtp.example.org';
-     * $TYPO3_CONF_VARS['MAIL']['transport_smtp_port'] = '25';
-     * $TYPO3_CONF_VARS['MAIL']['transport_smtp_encrypt'] = FALSE; # requires openssl in PHP
-     * $TYPO3_CONF_VARS['MAIL']['transport_smtp_username'] = 'username';
-     * $TYPO3_CONF_VARS['MAIL']['transport_smtp_password'] = 'password';
-     *
-     * $TYPO3_CONF_VARS['MAIL']['transport_sendmail_command'] = '/usr/sbin/sendmail -bs'
-     *
-     * @throws \TYPO3\CMS\Core\Exception
-     * @throws \RuntimeException
-     */
-    private function initializeTransport()
-    {
-        $this->transport = $this->getTransportFactory()->get($this->mailSettings);
-    }
-
-    /**
-     * @return TransportFactory
-     */
-    protected function getTransportFactory(): TransportFactory
-    {
-        return GeneralUtility::makeInstance(TransportFactory::class);
-    }
-
-    //
-    // Compatibility methods, as it was possible in TYPO3 v9 / SwiftMailer.
-    //
-
-    public function addFrom(...$addresses): Email
-    {
-        return parent::addFrom(...$this->convertNamedAddress(...$addresses));
-    }
-
-    public function addReplyTo(...$addresses): Email
-    {
-        return parent::addReplyTo(...$this->convertNamedAddress(...$addresses));
-    }
-
-    public function addTo(...$addresses): Email
-    {
-        return parent::addTo(...$this->convertNamedAddress(...$addresses));
-    }
-
-    public function addCc(...$addresses): Email
-    {
-        return parent::addCc(...$this->convertNamedAddress(...$addresses));
-    }
-
-    public function addBcc(...$addresses): Email
-    {
-        return parent::addBcc(...$this->convertNamedAddress(...$addresses));
-    }
-
-    protected function checkArguments($addresses, string $name = null): void
-    {
-        if ($name !== null && !is_string($addresses)) {
-            throw new \InvalidArgumentException('The combination of a name and an array of addresses is invalid.', 1570543657);
+            unset($GLOBALS['TYPO3_CONF_VARS']['MAIL']['overrides']);
         }
     }
 }
